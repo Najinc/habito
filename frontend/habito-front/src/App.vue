@@ -20,8 +20,10 @@ type SearchResult = {
 };
 
 const query = ref("appartement Lille");
+const searchCity = ref("Lille");
 const isLoading = ref(false);
 const errorMessage = ref("");
+const successMessage = ref("");
 const results = ref<SearchResult[]>([]);
 const allResults = ref<SearchResult[]>([]);
 
@@ -34,6 +36,13 @@ const filters = ref({
   minRooms: "",
   minScore: "",
 });
+
+// City coordinates mapping
+const cityCoordinates: Record<string, { lat: number; lng: number }> = {
+  Paris: { lat: 48.8566, lng: 2.3522 },
+  Lille: { lat: 50.6292, lng: 3.0573 },
+  Reims: { lat: 49.2583, lng: 4.0317 },
+};
 
 const hasResults = computed(() => results.value.length > 0);
 
@@ -111,16 +120,46 @@ const applyFilters = () => {
 
 const search = async () => {
   const cleanQuery = query.value.trim();
-  if (!cleanQuery) {
-    errorMessage.value = "Saisis une recherche avant de lancer le test.";
+  const city = searchCity.value.trim();
+
+  if (!cleanQuery || !city) {
+    errorMessage.value = "Saisir une recherche et une ville.";
     return;
   }
 
   isLoading.value = true;
   errorMessage.value = "";
+  successMessage.value = "";
 
   try {
-    const response = await fetch("http://localhost:8000/api/search", {
+    // Step 1: First ingest fresh data
+    const coords = cityCoordinates[city] || { lat: 48.8566, lng: 2.3522 };
+    const ingestResponse = await fetch("http://localhost:8000/api/ingest", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        search_text: cleanQuery,
+        city: city,
+        lat: coords.lat,
+        lng: coords.lng,
+        radius: 10000,
+      }),
+    });
+
+    if (!ingestResponse.ok) {
+      const body = await ingestResponse.text();
+      console.error("Ingest error:", body);
+    } else {
+      successMessage.value = "Annonces mises à jour, recherche en cours...";
+    }
+
+    // Wait 2 seconds for ingestion to complete
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    // Step 2: Now search
+    const searchResponse = await fetch("http://localhost:8000/api/search", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -128,19 +167,27 @@ const search = async () => {
       body: JSON.stringify({ query: cleanQuery }),
     });
 
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(body || `Erreur HTTP ${response.status}`);
+    if (!searchResponse.ok) {
+      const body = await searchResponse.text();
+      throw new Error(body || `Erreur HTTP ${searchResponse.status}`);
     }
 
-    const data = (await response.json()) as SearchResult[];
+    const data = (await searchResponse.json()) as SearchResult[];
     allResults.value = Array.isArray(data) ? data : [];
     applyFilters();
+
+    if (allResults.value.length === 0) {
+      successMessage.value =
+        "Aucune annonce trouvée. Essaye une autre recherche.";
+    } else {
+      successMessage.value = `${allResults.value.length} annonce(s) trouvée(s) !`;
+    }
   } catch (error) {
     allResults.value = [];
     results.value = [];
     errorMessage.value =
       error instanceof Error ? error.message : "Erreur inconnue.";
+    successMessage.value = "";
   } finally {
     isLoading.value = false;
   }
@@ -183,9 +230,17 @@ const search = async () => {
                 id="query"
                 v-model="query"
                 type="text"
-                placeholder="Ex: appartement Lille, studio Paris..."
+                placeholder="Ex: appartement, studio..."
                 class="h-12 flex-1 rounded-xl border border-slate-200 bg-white px-4 text-slate-900 shadow-sm outline-none ring-indigo-300 transition focus:border-indigo-400 focus:ring-4"
               />
+              <select
+                v-model="searchCity"
+                class="h-12 rounded-xl border border-slate-200 bg-white px-4 text-slate-900 shadow-sm outline-none ring-indigo-300 transition focus:border-indigo-400 focus:ring-4"
+              >
+                <option value="Paris">Paris</option>
+                <option value="Lille">Lille</option>
+                <option value="Reims">Reims</option>
+              </select>
               <button
                 type="submit"
                 :disabled="isLoading"
@@ -201,6 +256,13 @@ const search = async () => {
             class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"
           >
             {{ errorMessage }}
+          </p>
+
+          <p
+            v-if="successMessage"
+            class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
+          >
+            {{ successMessage }}
           </p>
 
           <!-- Filters Section -->
