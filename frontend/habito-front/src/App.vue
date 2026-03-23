@@ -23,6 +23,17 @@ const query = ref("appartement Lille");
 const isLoading = ref(false);
 const errorMessage = ref("");
 const results = ref<SearchResult[]>([]);
+const allResults = ref<SearchResult[]>([]);
+
+// Filters
+const filters = ref({
+  minPrice: "",
+  maxPrice: "",
+  minSquare: "",
+  maxSquare: "",
+  minRooms: "",
+  minScore: "",
+});
 
 const hasResults = computed(() => results.value.length > 0);
 
@@ -54,6 +65,50 @@ const scoreStyle = (score: number): Record<string, string> => {
   };
 };
 
+const applyFilters = () => {
+  results.value = allResults.value.filter((item) => {
+    const price = item.payload.price;
+    const square = item.payload.square;
+    const rooms = item.payload.rooms;
+    const score = item.score;
+
+    if (
+      filters.value.minPrice &&
+      price &&
+      price < parseFloat(filters.value.minPrice)
+    )
+      return false;
+    if (
+      filters.value.maxPrice &&
+      price &&
+      price > parseFloat(filters.value.maxPrice)
+    )
+      return false;
+    if (
+      filters.value.minSquare &&
+      square &&
+      square < parseFloat(filters.value.minSquare)
+    )
+      return false;
+    if (
+      filters.value.maxSquare &&
+      square &&
+      square > parseFloat(filters.value.maxSquare)
+    )
+      return false;
+    if (
+      filters.value.minRooms &&
+      rooms &&
+      rooms < parseFloat(filters.value.minRooms)
+    )
+      return false;
+    if (filters.value.minScore && score < parseFloat(filters.value.minScore))
+      return false;
+
+    return true;
+  });
+};
+
 const search = async () => {
   const cleanQuery = query.value.trim();
   if (!cleanQuery) {
@@ -79,8 +134,10 @@ const search = async () => {
     }
 
     const data = (await response.json()) as SearchResult[];
-    results.value = Array.isArray(data) ? data : [];
+    allResults.value = Array.isArray(data) ? data : [];
+    applyFilters();
   } catch (error) {
+    allResults.value = [];
     results.value = [];
     errorMessage.value =
       error instanceof Error ? error.message : "Erreur inconnue.";
@@ -146,13 +203,110 @@ const search = async () => {
             {{ errorMessage }}
           </p>
 
+          <!-- Filters Section -->
+          <section
+            v-if="allResults.length > 0"
+            class="space-y-4 rounded-2xl bg-slate-50 p-6"
+          >
+            <h3 class="text-sm font-semibold text-slate-700">
+              Filtrer les résultats
+            </h3>
+            <div class="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
+              <!-- Price Range -->
+              <div class="space-y-1">
+                <label class="text-xs font-medium text-slate-600"
+                  >Prix min (€)</label
+                >
+                <input
+                  v-model="filters.minPrice"
+                  type="number"
+                  placeholder="Min"
+                  class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  @change="applyFilters"
+                />
+              </div>
+              <div class="space-y-1">
+                <label class="text-xs font-medium text-slate-600"
+                  >Prix max (€)</label
+                >
+                <input
+                  v-model="filters.maxPrice"
+                  type="number"
+                  placeholder="Max"
+                  class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  @change="applyFilters"
+                />
+              </div>
+
+              <!-- Square Range -->
+              <div class="space-y-1">
+                <label class="text-xs font-medium text-slate-600"
+                  >Surface min (m²)</label
+                >
+                <input
+                  v-model="filters.minSquare"
+                  type="number"
+                  placeholder="Min"
+                  class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  @change="applyFilters"
+                />
+              </div>
+              <div class="space-y-1">
+                <label class="text-xs font-medium text-slate-600"
+                  >Surface max (m²)</label
+                >
+                <input
+                  v-model="filters.maxSquare"
+                  type="number"
+                  placeholder="Max"
+                  class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  @change="applyFilters"
+                />
+              </div>
+
+              <!-- Rooms -->
+              <div class="space-y-1">
+                <label class="text-xs font-medium text-slate-600"
+                  >Pièces min</label
+                >
+                <input
+                  v-model="filters.minRooms"
+                  type="number"
+                  placeholder="Min"
+                  class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  @change="applyFilters"
+                />
+              </div>
+
+              <!-- Score -->
+              <div class="space-y-1">
+                <label class="text-xs font-medium text-slate-600"
+                  >Score min</label
+                >
+                <input
+                  v-model="filters.minScore"
+                  type="number"
+                  step="0.1"
+                  placeholder="0.0"
+                  class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  @change="applyFilters"
+                />
+              </div>
+            </div>
+          </section>
+
+          <!-- Results Section -->
           <section class="space-y-4">
             <div class="flex items-center justify-between">
               <h2 class="text-xl font-semibold text-slate-900">Résultats</h2>
               <span
                 class="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600"
               >
-                {{ results.length }} annonce(s)
+                {{ results.length
+                }}<span v-if="allResults.length > results.length">
+                  / {{ allResults.length }}</span
+                >
+                annonce(s)
               </span>
             </div>
 
