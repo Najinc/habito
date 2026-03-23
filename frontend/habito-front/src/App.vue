@@ -204,10 +204,7 @@ const search = async () => {
           </p>
 
           <!-- Filters Section -->
-          <section
-            v-if="allResults.length > 0"
-            class="space-y-4 rounded-2xl bg-slate-50 p-6"
-          >
+          <section class="space-y-4 rounded-2xl bg-slate-50">
             <h3 class="text-sm font-semibold text-slate-700">
               Filtrer les résultats
             </h3>
