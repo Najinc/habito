@@ -216,11 +216,15 @@ const search = async () => {
                         <span class="rounded-lg bg-slate-100 px-2 py-1">{{
                           item.payload.city || "Ville non renseignée"
                         }}</span>
-                        <span class="rounded-lg bg-slate-100 px-2 py-1"
-                          >{{ item.payload.square ?? "N/A" }} m²</span
+                        <span
+                          v-if="item.payload.square"
+                          class="rounded-lg bg-slate-100 px-2 py-1"
+                          >{{ item.payload.square }} m²</span
                         >
-                        <span class="rounded-lg bg-slate-100 px-2 py-1"
-                          >{{ item.payload.rooms ?? "N/A" }} pièce(s)</span
+                        <span
+                          v-if="item.payload.rooms"
+                          class="rounded-lg bg-slate-100 px-2 py-1"
+                          >{{ item.payload.rooms }} pièce(s)</span
                         >
                       </div>
                     </div>
