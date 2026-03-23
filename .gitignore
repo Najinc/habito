@@ -1,0 +1,11 @@
+backend/target/
+backend/.git.backend.bak/
+frontend/habito-front/node_modules/
+frontend/habito-front/dist/
+frontend/habito-front/.vite/
+ingestion/.ingest_state.json
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+**/.mypy_cache/
+**/.DS_Store
