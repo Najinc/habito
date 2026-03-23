@@ -2,6 +2,10 @@ services:
   qdrant:
     image: qdrant/qdrant:v1.13.4
     container_name: habito-qdrant
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
 
   backend:
     build:
@@ -18,3 +22,42 @@ services:
       SEARCH_LIMIT: ${SEARCH_LIMIT:-10}
       OLLAMA_EMBED_MODEL: ${OLLAMA_EMBED_MODEL:-nomic-embed-text}
       EMBEDDING_DIM: ${EMBEDDING_DIM:-384}
+
+  frontend:
+    build:
+      context: ./frontend/habito-front
+    container_name: habito-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+  ingestion:
+    build:
+      context: ./ingestion
+    container_name: habito-ingestion
+    depends_on:
+      - qdrant
+    environment:
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: 6333
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION:-habito_ads}
+      EMBEDDING_DIM: ${EMBEDDING_DIM:-384}
+      EMBEDDING_MODE: ${EMBEDDING_MODE:-hash}
+      LBC_TEXT: ${LBC_TEXT:-appartement}
+      LBC_CITY: ${LBC_CITY:-Paris}
+      LBC_LAT: ${LBC_LAT:-48.8566}
+      LBC_LNG: ${LBC_LNG:-2.3522}
+      LBC_RADIUS: ${LBC_RADIUS:-10000}
+      LBC_PAGE: ${LBC_PAGE:-1}
+      LBC_LIMIT: ${LBC_LIMIT:-35}
+      LBC_PRICE_MIN: ${LBC_PRICE_MIN:-500}
+      LBC_PRICE_MAX: ${LBC_PRICE_MAX:-1500}
+      LBC_PROGRESSIVE: ${LBC_PROGRESSIVE:-false}
+      LBC_MAX_PAGES: ${LBC_MAX_PAGES:-1}
+      LBC_LOCATIONS: ${LBC_LOCATIONS:-Paris:48.8566:2.3522;Lille:50.6292:3.0573;Reims:49.2583:4.0317}
+    profiles:
+      - tools
+
+volumes:
+  qdrant_data:
