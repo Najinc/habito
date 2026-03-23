@@ -1,307 +1,190 @@
-# 🏠 Habito - Moteur de recherche immobilier intelligent
+# Habito - Moteur de recherche immobilier sémantique
 
-Moteur de recherche d'annonces immobilières utilisant la recherche vectorielle (embeddings) et le reranking pour des résultats pertinents.
+Habito est un moteur de recherche d'annonces immobilières basé sur :
+- des embeddings de texte,
+- une recherche vectorielle Qdrant,
+- un reranking lexical métier.
 
-## 🏗️ Architecture
+Le frontend affiche les résultats avec un badge de score en dégradé de couleur pour visualiser rapidement la pertinence.
 
-### Stack technique
-- **Frontend** : Vue 3 + TypeScript + Tailwind CSS
-- **Backend** : FastAPI (Python 3.12)
-- **Base de données vectorielle** : Qdrant
-- **Embeddings** : Ollama (modèle `nomic-embed-text`)
-- **Reranking** : Algorithme lexical avec boost sur correspondance ville/mots-clés
+## Vue d'ensemble
 
-### Flow de recherche
-```
-Query utilisateur
-    ↓
-🔤 Embedding (Ollama)
-    ↓
-🔍 Recherche vectorielle (Qdrant)
-    ↓
-⚡ Reranking lexical
-    ↓
-📊 Résultats triés
-```
+Stack principale :
+- Frontend : Vue 3, TypeScript, Vite, Tailwind CSS
+- Backend : FastAPI (Python)
+- Base vectorielle : Qdrant
+- Embeddings : Ollama (`nomic-embed-text`) avec fallback hash local
+- Ingestion : script Python pour collecter et indexer des annonces
 
-## 📋 Prérequis
+Flux de recherche :
 
-- Docker & Docker Compose
-- Ollama installé localement avec le modèle `nomic-embed-text`
-- Python 3.12+ (pour l'ingestion en local)
-- Git
+1. L'utilisateur envoie une requête texte.
+2. Le backend transforme la requête en vecteur (embedding).
+3. Qdrant récupère les annonces proches dans l'espace vectoriel.
+4. Un reranking lexical ajoute des boosts métier.
+5. Les résultats sont triés par score final et renvoyés au frontend.
 
-## 🚀 Installation
+## Comment le scoring fonctionne
 
-### 1. Cloner le repository
+Le score final affiché est la somme de :
+
+1. Score vectoriel Qdrant
+Ce score mesure la proximité sémantique entre la requête et l'annonce.
+
+2. Boost lexical (reranking)
+Le service de reranking ajoute des points selon des règles simples :
+- +0.8 : la requête normalisée complète est présente dans le texte de l'annonce
+- +0.4 par token trouvé dans le texte
+- +1.4 par token trouvé dans la ville
+
+Formule simplifiée :
+
+`score_final = score_qdrant + boosts_lexicaux`
+
+Le tri final est décroissant sur `score_final`.
+
+Fichiers liés au scoring :
+- `backend/src/services/qdrant.py`
+- `backend/src/services/rerank.py`
+- `backend/src/routes/search.py`
+
+## Dégradé de couleur du score (frontend)
+
+Dans l'interface, chaque résultat affiche un badge `Score X.XX`.
+
+Le badge applique un dégradé de couleur selon le score :
+- score faible : teintes rouges/orangées
+- score moyen : teintes jaunes
+- score élevé : teintes vertes
+
+Détail implémentation :
+- le score est borné dans l'intervalle `[0, 4]` pour l'affichage,
+- un hue HSL est calculé sur l'intervalle `0 -> 120`,
+- un `linear-gradient(...)` est généré à partir de ce hue.
+
+Fichier frontend concerné :
+- `frontend/habito-front/src/App.vue`
+
+## Embeddings : ce qui est utilisé
+
+Service : `backend/src/services/ollama.py`
+
+Comportement :
+1. Appel principal Ollama : `POST /api/embed`
+2. Fallback compatibilité : `POST /api/embeddings`
+3. Fallback final local : embedding hash déterministe si Ollama est indisponible
+
+Paramètres importants :
+- `OLLAMA_URL` (par défaut `http://localhost:11434`)
+- `OLLAMA_EMBED_MODEL` (par défaut `nomic-embed-text`)
+- `EMBEDDING_DIM` (par défaut `384`)
+
+## Recherche vectorielle : Qdrant
+
+Service : `backend/src/services/qdrant.py`
+
+Comportement :
+- interroge la collection Qdrant avec le vecteur de la requête,
+- retourne `limit` résultats avec payload.
+
+Paramètres importants :
+- `QDRANT_URL` (Docker: `http://qdrant:6333`)
+- `QDRANT_COLLECTION` (par défaut `habito_ads`)
+- `SEARCH_LIMIT` (par défaut `10`)
+
+## API backend
+
+Endpoints :
+- `GET /api/health`
+- `POST /api/search`
+
+Exemple :
+
 ```bash
-git clone https://github.com/Najinc/habito.git
-cd habito
+curl -X POST http://localhost:8000/api/search \
+  -H "Content-Type: application/json" \
+  -d '{"query": "appartement 2 pieces Lille"}'
 ```
 
-### 2. Installer Ollama et le modèle d'embedding
+## Lancer le projet avec Docker
 
-**Sur Windows :**
+Prerequis :
+- Docker
+- Docker Compose
+- Ollama en local avec le modele `nomic-embed-text`
+
+Etapes :
+
 ```bash
-# Télécharger Ollama depuis https://ollama.ai/download
-winget install Ollama.Ollama
+# 1) depuis la racine du projet
+docker-compose up --build -d
 
-# Télécharger le modèle d'embedding
-ollama pull nomic-embed-text
+# 2) verifier les services
+docker-compose ps
 ```
 
-**Sur Linux/Mac :**
-```bash
-curl -fsSL https://ollama.ai/install.sh | sh
-ollama pull nomic-embed-text
-```
-
-### 3. Configurer les variables d'environnement (optionnel)
-
-Créer un fichier `.env` à la racine du projet :
-```env
-# Qdrant
-QDRANT_URL=http://qdrant:6333
-QDRANT_COLLECTION=habito_ads
-
-# Ollama
-OLLAMA_URL=http://host.docker.internal:11434
-OLLAMA_EMBED_MODEL=nomic-embed-text
-EMBEDDING_DIM=384
-
-# Search
-SEARCH_LIMIT=10
-```
-
-### 4. Lancer les services Docker
-```bash
-docker-compose up -d
-```
-
-**Services disponibles :**
+URLs utiles :
 - Frontend : http://localhost:3000
-- Backend API : http://localhost:8000
-- Qdrant Dashboard : http://localhost:6333/dashboard
-- Documentation API : http://localhost:8000/docs
+- Backend : http://localhost:8000
+- Swagger : http://localhost:8000/docs
+- Qdrant dashboard : http://localhost:6333/dashboard
 
-## 📊 Ingestion des données
+## Ingestion des annonces
 
-### 🐳 Via Docker (Recommandé)
+Le dossier `ingestion/` contient le script de collecte/indexation.
 
-**Mode simple (1 page par ville) :**
+Lancement docker :
+
 ```bash
 docker-compose run --rm ingestion
 ```
 
-**Mode progressif (multi-pages, multi-villes) :**
-```bash
-docker-compose run --rm \
-  -e LBC_PROGRESSIVE=true \
-  -e LBC_MAX_PAGES=3 \
-  -e LBC_LOCATIONS="Paris:48.8566:2.3522;Lille:50.6292:3.0573;Lyon:45.7640:4.8357" \
-  ingestion
-```
+Lancement local :
 
-**Exemple avec configuration complète :**
-```bash
-docker-compose run --rm \
-  -e LBC_TEXT="appartement" \
-  -e LBC_PROGRESSIVE=true \
-  -e LBC_MAX_PAGES=5 \
-  -e LBC_LOCATIONS="Paris:48.8566:2.3522;Lille:50.6292:3.0573;Reims:49.2583:4.0317" \
-  -e LBC_PRICE_MIN=600 \
-  -e LBC_PRICE_MAX=1200 \
-  ingestion
-```
-
-**Ou via un fichier .env :**
-```bash
-# Copier le fichier d'exemple
-cp .env.example .env
-
-# Éditer .env avec vos paramètres
-# Puis lancer :
-docker-compose --env-file .env run --rm ingestion
-```
-
-### 🐍 Via Python local (Alternative)
-
-**Installation des dépendances :**
 ```bash
 cd ingestion
 pip install -r requirements.txt
-```
-
-**Lancement :**
-```bash
-# Mode simple
-python ingest_lbc.py
-
-# Mode progressif
-LBC_PROGRESSIVE=true \
-LBC_MAX_PAGES=3 \
-LBC_LOCATIONS="Paris:48.8566:2.3522;Lille:50.6292:3.0573" \
 python ingest_lbc.py
 ```
 
-### Variables d'environnement disponibles
+## Developpement local
 
-| Variable | Défaut | Description |
-|----------|--------|-------------|
-| `LBC_TEXT` | `appartement` | Texte de recherche |
-| `LBC_LOCATIONS` | `Paris:48.8566:2.3522;...` | Villes (format: `Ville:Lat:Lng` séparés par `;`) |
-| `LBC_RADIUS` | `10000` | Rayon de recherche en mètres |
-| `LBC_PRICE_MIN` | `500` | Prix minimum |
-| `LBC_PRICE_MAX` | `1500` | Prix maximum |
-| `LBC_PAGE` | `1` | Page de départ |
-| `LBC_LIMIT` | `35` | Résultats par page |
-| `LBC_PROGRESSIVE` | `false` | Mode progressif (plusieurs pages) |
-| `LBC_MAX_PAGES` | `1` | Nombre de pages par ville |
-| `EMBEDDING_MODE` | `hash` | Mode d'embedding (`hash` ou `sentence`) |
+Backend :
 
-## 🔍 Utilisation
-
-### Recherche via le frontend
-1. Ouvrir http://localhost:3000
-2. Entrer une requête (ex: "appartement 2 pièces Paris")
-3. Les résultats sont triés par pertinence (score vectoriel + reranking)
-
-### API Backend
-
-**Endpoint de recherche :**
-```bash
-curl -X POST http://localhost:8000/api/search \
-  -H "Content-Type: application/json" \
-  -d '{"query": "appartement 3 pièces Paris proche métro"}'
-```
-
-**Documentation interactive :**
-- Swagger UI : http://localhost:8000/docs
-- ReDoc : http://localhost:8000/redoc
-
-## 🛠️ Développement
-
-### Backend (sans Docker)
 ```bash
 cd backend
 pip install -r requirements.txt
 uvicorn src.main:app --reload --port 8000
 ```
 
-### Frontend (sans Docker)
+Frontend :
+
 ```bash
 cd frontend/habito-front
 npm install
 npm run dev
-# Accessible sur http://localhost:5173
 ```
 
-### Qdrant local
-```bash
-docker run -p 6333:6333 qdrant/qdrant:v1.13.4
-```
+## Structure du repository
 
-## 📁 Structure du projet
-
-```
+```text
 habito/
-├── backend/
-│   ├── src/
-│   │   ├── main.py                 # Point d'entrée FastAPI
-│   │   ├── routes/
-│   │   │   └── search.py            # Endpoint de recherche
-│   │   ├── services/
-│   │   │   ├── ollama.py            # Service d'embedding
-│   │   │   ├── qdrant.py            # Client Qdrant
-│   │   │   └── rerank.py            # Service de reranking
-│   │   └── models/
-│   │       ├── search.py            # Modèles de requête
-│   │       └── listing.py           # Modèles de réponse
-│   ├── Dockerfile
-│   └── requirements.txt
-├── frontend/
-│   └── habito-front/
-│       ├── src/
-│       │   ├── App.vue
-│       │   └── components/
-│       ├── Dockerfile
-│       ├── nginx.conf
-│       └── package.json
-├── ingestion/
-│   ├── ingest_lbc.py                # Script d'ingestion Leboncoin
-│   └── requirements.txt
-├── docker-compose.yml
-└── README.md
+|- backend/
+|  |- src/
+|  |  |- routes/search.py
+|  |  |- services/ollama.py
+|  |  |- services/qdrant.py
+|  |  |- services/rerank.py
+|- frontend/habito-front/
+|  |- src/App.vue
+|- ingestion/
+|  |- ingest_lbc.py
+|- docker-compose.yml
+|- README.md
 ```
 
-## 🔧 Technologies détaillées
+## Notes importantes
 
-### Backend
-- **FastAPI** : Framework web async
-- **httpx** : Client HTTP async pour Ollama et Qdrant
-- **Qdrant** : Base de données vectorielle (HNSW index, distance cosinus)
-- **Ollama** : Modèle d'embedding local `nomic-embed-text` (384 dimensions)
-
-### Reranking
-Le service de reranking améliore les résultats de la recherche vectorielle :
-- **Boost lexical** : +0.8 si la requête complète est dans le document
-- **Boost par token** : +0.4 par mot-clé trouvé
-- **Boost ville** : +1.4 si un token correspond à la ville
-
-### Ingestion
-- **lbc** : Client Python pour scraper Leboncoin
-- Extraction automatique de : surface (m²), nombre de pièces, ville
-- Embedding via hash (fallback si Ollama indisponible)
-- Mode progressif avec sauvegarde d'état
-
-## 🐛 Troubleshooting
-
-### Ollama n'est pas accessible
-```bash
-# Vérifier qu'Ollama tourne
-ollama list
-
-# Vérifier le modèle
-ollama pull nomic-embed-text
-
-# Tester l'embedding
-curl http://localhost:11434/api/embed -d '{
-  "model": "nomic-embed-text",
-  "input": "test"
-}'
-```
-
-### Erreur "Datadome" lors de l'ingestion
-Le scraping Leboncoin peut être bloqué par Datadome (rate limiting).
-- Réduire `LBC_MAX_PAGES`
-- Attendre quelques minutes entre les exécutions
-- Utiliser un VPN ou changer de réseau
-
-### Qdrant collection n'existe pas
-La collection est créée automatiquement lors de la première ingestion.
-```bash
-cd ingestion
-python ingest_lbc.py
-```
-
-### Le frontend ne communique pas avec le backend
-Vérifier que les services Docker sont bien lancés :
-```bash
-docker-compose ps
-docker-compose logs backend
-```
-
-## 📝 TODO / Améliorations futures
-
-- [ ] Ajouter filtres avancés (prix, surface, ville)
-- [ ] Implémenter le reranking avec un modèle de cross-encoding
-- [ ] Support d'autres sources d'annonces (SeLoger, PAP)
-- [ ] Cache Redis pour les embeddings fréquents
-- [ ] Interface admin pour gérer les ingestions
-- [ ] Tests unitaires et d'intégration
-- [ ] CI/CD avec GitHub Actions
-
----
-
-**Auteur** : Najib CHAFEI
-**License** : MIT
+- Le chatbot frontend a ete retire.
+- La recherche reste basee sur embeddings + recherche vectorielle + reranking.
+- Si Ollama est indisponible, le backend continue a fonctionner grace au fallback hash.
