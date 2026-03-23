@@ -19,7 +19,7 @@ type SearchResult = {
   payload: SearchPayload;
 };
 
-const query = ref("appartement Lille");
+const query = ref("appartement");
 const searchCity = ref("Lille");
 const isLoading = ref(false);
 const errorMessage = ref("");
@@ -40,8 +40,24 @@ const filters = ref({
 // City coordinates mapping
 const cityCoordinates: Record<string, { lat: number; lng: number }> = {
   Paris: { lat: 48.8566, lng: 2.3522 },
+  Marseille: { lat: 43.2965, lng: 5.3698 },
+  Lyon: { lat: 45.764, lng: 4.8357 },
+  Toulouse: { lat: 43.6047, lng: 1.4442 },
+  Nice: { lat: 43.7102, lng: 7.262 },
+  Nantes: { lat: 47.2184, lng: -1.5536 },
+  Bordeaux: { lat: 44.8378, lng: -0.5792 },
   Lille: { lat: 50.6292, lng: 3.0573 },
+  Rennes: { lat: 48.1173, lng: -1.6778 },
+  Strasbourg: { lat: 48.5734, lng: 7.7521 },
+  Montpellier: { lat: 43.6108, lng: 3.8767 },
+  Cannes: { lat: 43.5524, lng: 7.0176 },
   Reims: { lat: 49.2583, lng: 4.0317 },
+  Grenoble: { lat: 45.1885, lng: 5.7245 },
+  Tours: { lat: 47.3941, lng: 0.6848 },
+  Dijon: { lat: 47.322, lng: 5.04 },
+  Caen: { lat: 49.1829, lng: -0.355 },
+  Angers: { lat: 47.4829, lng: -0.5515 },
+  Amiens: { lat: 49.8941, lng: 2.2958 },
 };
 
 const hasResults = computed(() => results.value.length > 0);
@@ -237,9 +253,25 @@ const search = async () => {
                 v-model="searchCity"
                 class="h-12 rounded-xl border border-slate-200 bg-white px-4 text-slate-900 shadow-sm outline-none ring-indigo-300 transition focus:border-indigo-400 focus:ring-4"
               >
-                <option value="Paris">Paris</option>
+                <option value="Amiens">Amiens</option>
+                <option value="Angers">Angers</option>
+                <option value="Bordeaux">Bordeaux</option>
+                <option value="Caen">Caen</option>
+                <option value="Cannes">Cannes</option>
+                <option value="Dijon">Dijon</option>
+                <option value="Grenoble">Grenoble</option>
                 <option value="Lille">Lille</option>
+                <option value="Lyon">Lyon</option>
+                <option value="Marseille">Marseille</option>
+                <option value="Montpellier">Montpellier</option>
+                <option value="Nantes">Nantes</option>
+                <option value="Nice">Nice</option>
+                <option value="Paris">Paris</option>
                 <option value="Reims">Reims</option>
+                <option value="Rennes">Rennes</option>
+                <option value="Strasbourg">Strasbourg</option>
+                <option value="Toulouse">Toulouse</option>
+                <option value="Tours">Tours</option>
               </select>
               <button
                 type="submit"
@@ -256,13 +288,6 @@ const search = async () => {
             class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"
           >
             {{ errorMessage }}
-          </p>
-
-          <p
-            v-if="successMessage"
-            class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
-          >
-            {{ successMessage }}
           </p>
 
           <!-- Filters Section -->
