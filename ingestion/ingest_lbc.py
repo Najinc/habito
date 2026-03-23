@@ -272,6 +272,12 @@ def ad_payload(ad, doc: str, requested_city: str) -> dict:
     body = getattr(ad, "body", None)
     square_value = extract_square(ad, subject, body)
     rooms_value = extract_rooms(ad, subject, body)
+    
+    # Extract first image URL from images list
+    image_url = None
+    images = getattr(ad, "images", None) or []
+    if images and len(images) > 0:
+        image_url = images[0]
 
     return {
         "ad_id": getattr(ad, "list_id", None),
@@ -282,6 +288,7 @@ def ad_payload(ad, doc: str, requested_city: str) -> dict:
         "square": square_value,
         "rooms": rooms_value,
         "url": getattr(ad, "url", None),
+        "image_url": image_url,
         "doc": doc,
         "source": "lbc",
     }
