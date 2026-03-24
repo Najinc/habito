@@ -210,20 +210,8 @@ const handleRadiusUpdate = (radius: number) => {
           />
         </section>
 
-        <div class="grid gap-6 lg:grid-cols-3">
-          <div class="lg:col-span-2">
-            <ResultsList
-              :results="results"
-              :all-results-count="allResults.length"
-              :has-results="hasResults"
-              :is-loading="isLoading"
-              :format-price="formatPrice"
-              :short-text="shortText"
-              :score-style="scoreStyle"
-            />
-          </div>
-
-          <div class="lg:col-span-1">
+        <div class="flex flex-col gap-6">
+          <div>
             <AdvisorPanel
               :has-results="hasResults"
               :is-loading="isChatLoading"
@@ -233,6 +221,18 @@ const handleRadiusUpdate = (radius: number) => {
               :recommended-url="chatRecommendedUrl"
               @update:question="chatQuestion = $event"
               @ask="askAdvisor"
+            />
+          </div>
+
+          <div>
+            <ResultsList
+              :results="results"
+              :all-results-count="allResults.length"
+              :has-results="hasResults"
+              :is-loading="isLoading"
+              :format-price="formatPrice"
+              :short-text="shortText"
+              :score-style="scoreStyle"
             />
           </div>
         </div>

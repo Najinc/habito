@@ -132,12 +132,11 @@ const updateMarkers = () => {
     });
 
     const popupContent = `
-      <div class="text-sm max-w-xs">
-        <strong class="text-base block mb-2">${result.payload.subject || "Annonce"}</strong>
-        <p class="text-xs text-gray-600 mb-1">${distance.toFixed(1)} km du centre</p>
+      <div class="text-sm max-w-xs p-4">
+        <strong class="text-base block">${result.payload.subject || "Annonce"}</strong>
+        <p class="text-xs text-gray-600 mb-1">${distance.toFixed(1)} km du centre - ${result.payload.square ? `${result.payload.square} m²` : ""} ${result.payload.rooms ? `- ${result.payload.rooms} pièces` : ""}</p>
         <p class="font-semibold text-sm text-blue-600 mb-1">${price}</p>
-        <p class="text-xs text-gray-600 mb-2">${result.payload.square ? `${result.payload.square} m²` : ""} ${result.payload.rooms ? `• ${result.payload.rooms} pièces` : ""}</p>
-        <a href="${result.payload.url}" target="_blank" rel="noopener" class="text-xs text-sky-600 hover:underline">Voir annonce →</a>
+        <a href="${result.payload.url}" target="_blank" rel="noopener" class="text-xs text-blue-600 hover:underline">Voir annonce →</a>
       </div>
     `;
 
