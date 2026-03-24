@@ -9,6 +9,8 @@ export type SearchPayload = {
   url?: string | null;
   image_url?: string | null;
   source?: string | null;
+  lat?: number | null;
+  lng?: number | null;
 };
 
 export type SearchResult = {

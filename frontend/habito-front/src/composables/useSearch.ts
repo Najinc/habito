@@ -23,9 +23,32 @@ export const cityOptions = [
   "Tours",
 ];
 
+export const cityCoordinates: Record<string, { lat: number; lng: number }> = {
+  Amiens: { lat: 49.8941, lng: 2.2958 },
+  Angers: { lat: 47.4829, lng: -0.5515 },
+  Bordeaux: { lat: 44.8378, lng: -0.5792 },
+  Caen: { lat: 49.1829, lng: -0.355 },
+  Cannes: { lat: 43.5524, lng: 7.0176 },
+  Dijon: { lat: 47.322, lng: 5.04 },
+  Grenoble: { lat: 45.1885, lng: 5.7245 },
+  Lille: { lat: 50.6292, lng: 3.0573 },
+  Lyon: { lat: 45.764, lng: 4.8357 },
+  Marseille: { lat: 43.2965, lng: 5.3698 },
+  Montpellier: { lat: 43.6108, lng: 3.8767 },
+  Nantes: { lat: 47.2184, lng: -1.5536 },
+  Nice: { lat: 43.7102, lng: 7.262 },
+  Paris: { lat: 48.8566, lng: 2.3522 },
+  Reims: { lat: 49.2583, lng: 4.0317 },
+  Rennes: { lat: 48.1173, lng: -1.6778 },
+  Strasbourg: { lat: 48.5734, lng: 7.7521 },
+  Toulouse: { lat: 43.6047, lng: 1.4442 },
+  Tours: { lat: 47.3941, lng: 0.6848 },
+};
+
 export function useSearch() {
   const query = ref("appartement");
   const searchCity = ref("Lille");
+  const filterRadius = ref("10");
 
   const isLoading = ref(false);
   const errorMessage = ref("");
@@ -198,8 +221,10 @@ export function useSearch() {
 
   return {
     cityOptions,
+    cityCoordinates,
     query,
     searchCity,
+    filterRadius,
     isLoading,
     errorMessage,
     successMessage,

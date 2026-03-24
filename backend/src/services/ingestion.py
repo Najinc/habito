@@ -189,6 +189,13 @@ class IngestService:
         if images and len(images) > 0:
             image_url = images[0]
 
+        # Extract coordinates from location object
+        lat = None
+        lng = None
+        if hasattr(ad, "location") and ad.location:
+            lat = getattr(ad.location, "lat", None)
+            lng = getattr(ad.location, "lng", None)
+
         return {
             "ad_id": getattr(ad, "list_id", None),
             "subject": subject,
@@ -199,6 +206,8 @@ class IngestService:
             "rooms": rooms_value,
             "url": getattr(ad, "url", None),
             "image_url": image_url,
+            "lat": lat,
+            "lng": lng,
             "doc": doc,
             "source": "lbc",
         }
