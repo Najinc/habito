@@ -20,6 +20,7 @@ const {
   paginatedResults,
   hasMoreResults,
   filters,
+  selectedForComparison,
   chatQuestion,
   chatAnswer,
   chatRecommendedUrl,
@@ -31,6 +32,8 @@ const {
   scoreStyle,
   applyFilters,
   sortResults,
+  toggleSelection,
+  clearSelection,
   search,
   askAdvisor,
   loadMoreResults,
@@ -265,6 +268,9 @@ const handleRadiusUpdate = (radius: number) => {
               :format-price="formatPrice"
               :short-text="shortText"
               :score-style="scoreStyle"
+              :selected-for-comparison="selectedForComparison"
+              :toggle-selection="toggleSelection"
+              :clear-selection="clearSelection"
               @load-more="loadMoreResults"
             />
           </div>

@@ -69,6 +69,20 @@ export function useSearch() {
     minScore: "",
   });
 
+  const selectedForComparison = ref<Set<string>>(new Set());
+
+  const toggleSelection = (url: string) => {
+    if (selectedForComparison.value.has(url)) {
+      selectedForComparison.value.delete(url);
+    } else if (selectedForComparison.value.size < 3) {
+      selectedForComparison.value.add(url);
+    }
+  };
+
+  const clearSelection = () => {
+    selectedForComparison.value = new Set();
+  };
+
   const chatQuestion = ref("Quel est le meilleur bien pour moi et pourquoi ?");
   const chatAnswer = ref("");
   const chatRecommendedUrl = ref("");
@@ -283,6 +297,7 @@ export function useSearch() {
     displayedResultsCount,
     hasMoreResults,
     filters,
+    selectedForComparison,
     chatQuestion,
     chatAnswer,
     chatRecommendedUrl,
@@ -294,6 +309,8 @@ export function useSearch() {
     scoreStyle,
     applyFilters,
     sortResults,
+    toggleSelection,
+    clearSelection,
     search,
     askAdvisor,
     loadMoreResults,

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, computed } from "vue";
 import ImageGallery from "./ImageGallery.vue";
 import ScoreBreakdown from "./ScoreBreakdown.vue";
 import DetailModal from "./DetailModal.vue";
+import ComparatorView from "./ComparatorView.vue";
 import type { SearchResult } from "../types/search";
 
 interface Props {
@@ -14,6 +15,9 @@ interface Props {
   formatPrice: (value?: number | null) => string;
   shortText: (value?: string | null) => string;
   scoreStyle: (score: number) => Record<string, string>;
+  selectedForComparison: Set<string>;
+  toggleSelection: (url: string) => void;
+  clearSelection: () => void;
 }
 
 const props = defineProps<Props>();
@@ -25,6 +29,13 @@ const observerTarget = ref<HTMLDivElement | null>(null);
 const isLoadingMore = ref(false);
 const selectedResult = ref<SearchResult | null>(null);
 const isDetailModalOpen = ref(false);
+const showComparator = ref(false);
+
+const selectedResults = computed(() => {
+  return props.results.filter((r) =>
+    props.selectedForComparison.has(r.payload.url || ""),
+  );
+});
 
 const openDetailModal = (result: SearchResult) => {
   selectedResult.value = result;
@@ -98,6 +109,20 @@ onMounted(() => {
         class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
       >
         <div class="flex flex-col gap-4 p-5 md:flex-row">
+          <!-- Checkbox for comparison -->
+          <div class="flex items-start">
+            <input
+              type="checkbox"
+              :checked="selectedForComparison.has(item.payload.url || '')"
+              @change="toggleSelection(item.payload.url || '')"
+              class="h-5 w-5 cursor-pointer rounded border-slate-300 text-indigo-600 transition focus:ring-indigo-500"
+              :disabled="
+                !selectedForComparison.has(item.payload.url || '') &&
+                selectedForComparison.size >= 3
+              "
+            />
+          </div>
+
           <div class="flex-shrink-0 md:w-64">
             <ImageGallery
               :images="item.payload.images"
@@ -189,6 +214,63 @@ onMounted(() => {
       :result="selectedResult"
       :format-price="formatPrice"
       @close="closeDetailModal"
+    />
+
+    <!-- Comparator button (sticky) -->
+    <div
+      v-if="selectedForComparison.size > 0"
+      class="fixed bottom-6 right-6 z-30 flex items-center gap-3 rounded-lg bg-indigo-600 px-4 py-3 shadow-lg"
+    >
+      <div class="flex items-center gap-2 text-white">
+        <svg
+          class="h-5 w-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+          />
+        </svg>
+        <span class="text-sm font-semibold"
+          >{{ selectedForComparison.size }} sélectionné(e)</span
+        >
+      </div>
+      <button
+        @click="showComparator = true"
+        class="rounded-lg bg-white px-3 py-1 text-sm font-semibold text-indigo-600 transition hover:bg-indigo-50"
+      >
+        Comparer
+      </button>
+      <button
+        @click="clearSelection"
+        class="rounded-lg text-white/80 transition hover:text-white"
+      >
+        <svg
+          class="h-5 w-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"
+          />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Comparator View -->
+    <ComparatorView
+      v-if="showComparator"
+      :selected-results="selectedResults"
+      :format-price="formatPrice"
+      @close="showComparator = false"
     />
   </section>
 </template>
