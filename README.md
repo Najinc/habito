@@ -1,6 +1,7 @@
 # Habito - Moteur de recherche immobilier sémantique
 
 Habito est un moteur de recherche d'annonces immobilières basé sur :
+
 - des embeddings de texte,
 - une recherche vectorielle Qdrant,
 - un reranking lexical métier.
@@ -10,6 +11,7 @@ Le frontend affiche les résultats avec un badge de score en dégradé de couleu
 ## Vue d'ensemble
 
 Stack principale :
+
 - Frontend : Vue 3, TypeScript, Vite, Tailwind CSS
 - Backend : FastAPI (Python)
 - Base vectorielle : Qdrant
@@ -30,10 +32,11 @@ Flux de recherche :
 Le score final affiché est la somme de :
 
 1. Score vectoriel Qdrant
-Ce score mesure la proximité sémantique entre la requête et l'annonce.
+   Ce score mesure la proximité sémantique entre la requête et l'annonce.
 
 2. Boost lexical (reranking)
-Le service de reranking ajoute des points selon des règles simples :
+   Le service de reranking ajoute des points selon des règles simples :
+
 - +0.8 : la requête normalisée complète est présente dans le texte de l'annonce
 - +0.4 par token trouvé dans le texte
 - +1.4 par token trouvé dans la ville
@@ -45,6 +48,7 @@ Formule simplifiée :
 Le tri final est décroissant sur `score_final`.
 
 Fichiers liés au scoring :
+
 - `backend/src/services/qdrant.py`
 - `backend/src/services/rerank.py`
 - `backend/src/routes/search.py`
@@ -54,17 +58,20 @@ Fichiers liés au scoring :
 Dans l'interface, chaque résultat affiche un badge `Score X.XX`.
 
 Le badge applique un dégradé de couleur selon le score :
+
 - score faible : teintes rouges/orangées
 - score moyen : teintes jaunes
 - score élevé : teintes vertes
 
 Détail implémentation :
+
 - le score est borné dans l'intervalle `[0, 4]` pour l'affichage,
 - un hue HSL est calculé sur l'intervalle `0 -> 120`,
 - un `linear-gradient(...)` est généré à partir de ce hue.
 
 Fichier frontend concerné :
-- `frontend/habito-front/src/App.vue`
+
+- `frontend/src/App.vue`
 
 ## Embeddings : ce qui est utilisé
 
@@ -73,11 +80,13 @@ Service : `backend/src/services/ollama.py`
 Modèle utilisé : **Qwen3-Embedding-8B** de Hugging Face
 
 Comportement :
+
 1. Charge le modèle depuis Hugging Face au démarrage
 2. Génère des embeddings de dimension 4096
 3. Utilise GPU si disponible, sinon CPU
 
 Paramètres importants :
+
 - `EMBEDDING_MODEL` (par défaut `Qwen/Qwen3-Embedding-8B`)
 
 ## Reranking : ce qui est utilisé
@@ -87,12 +96,14 @@ Service : `backend/src/services/rerank.py`
 Modèle utilisé : **Qwen3-Reranker-4B** de Hugging Face
 
 Comportement :
+
 1. Prend en charge la requête et chaque document candidat
 2. Calcule un score de pertinence avec le modèle cross-encoder
 3. Combine ce score avec le score vectoriel original
 4. Retourne les résultats réordonnés
 
 Paramètres importants :
+
 - `RERANKING_MODEL` (par défaut `Qwen/Qwen3-Reranker-4B`)
 
 ## Recherche vectorielle : Qdrant
@@ -100,10 +111,12 @@ Paramètres importants :
 Service : `backend/src/services/qdrant.py`
 
 Comportement :
+
 - interroge la collection Qdrant avec le vecteur de la requête,
 - retourne `limit` résultats avec payload.
 
 Paramètres importants :
+
 - `QDRANT_URL` (Docker: `http://qdrant:6333`)
 - `QDRANT_COLLECTION` (par défaut `habito_ads`)
 - `SEARCH_LIMIT` (par défaut `10`)
@@ -111,6 +124,7 @@ Paramètres importants :
 ## API backend
 
 Endpoints :
+
 - `GET /api/health`
 - `POST /api/search`
 
@@ -125,10 +139,12 @@ curl -X POST http://localhost:8000/api/search \
 ## Lancer le projet avec Docker
 
 Prerequis :
+
 - Docker
 - Docker Compose
 
-**Note:** 
+**Note:**
+
 - Le modèle Qwen3-Embedding-8B sera téléchargé automatiquement depuis Hugging Face au premier démarrage (environ 8GB)
 - Assurez-vous d'avoir au minimum 8GB de RAM disponible et une bonne connexion internet
 
@@ -143,6 +159,7 @@ docker-compose ps
 ```
 
 URLs utiles :
+
 - Frontend : http://localhost:3000
 - Backend : http://localhost:8000
 - Swagger : http://localhost:8000/docs
@@ -179,7 +196,7 @@ uvicorn src.main:app --reload --port 8000
 Frontend :
 
 ```bash
-cd frontend/habito-front
+cd frontend
 npm install
 npm run dev
 ```
@@ -194,7 +211,7 @@ habito/
 |  |  |- services/ollama.py
 |  |  |- services/qdrant.py
 |  |  |- services/rerank.py
-|- frontend/habito-front/
+|- frontend/
 |  |- src/App.vue
 |- ingestion/
 |  |- ingest_lbc.py
