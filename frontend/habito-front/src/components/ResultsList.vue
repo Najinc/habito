@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from "vue";
 import ImageGallery from "./ImageGallery.vue";
+import ScoreBreakdown from "./ScoreBreakdown.vue";
 import type { SearchResult } from "../types/search";
 
 interface Props {
@@ -103,12 +104,10 @@ onMounted(() => {
                   </p>
                 </div>
                 <div class="flex-shrink-0 text-sm">
-                  <span
-                    class="whitespace-nowrap rounded-lg border px-2 py-1 font-medium"
-                    :style="scoreStyle(item.score)"
-                  >
-                    Score {{ item.score.toFixed(2) }}
-                  </span>
+                  <ScoreBreakdown
+                    :score="item.score"
+                    :breakdown="item.payload.score_breakdown"
+                  />
                 </div>
               </div>
 

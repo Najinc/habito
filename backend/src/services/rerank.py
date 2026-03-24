@@ -2,6 +2,8 @@ from typing import Any
 import os
 import re
 import unicodedata
+import time
+import math
 
 
 class RerankService:
@@ -33,13 +35,82 @@ class RerankService:
             return 0.35
         return -0.35
 
+    def _date_boost(self, payload: dict[str, Any]) -> float:
+        """Boost recent listings higher. Max boost of 0.5 for ads from today."""
+        pub_date = payload.get("first_publication_date")
+        if not pub_date:
+            return 0.0
+        
+        try:
+            current_time = time.time()
+            age_seconds = current_time - pub_date
+            age_days = age_seconds / (24 * 3600)
+            
+            # Exponential decay: newer = higher boost
+            # Today: 0.5, 7 days: 0.25, 30 days: 0.05, 90+ days: 0.0
+            boost = 0.5 * math.exp(-age_days / 30.0)
+            return round(max(0.0, min(0.5, boost)), 3)
+        except Exception:
+            return 0.0
+
+    def _image_boost(self, payload: dict[str, Any]) -> float:
+        """Boost listings with more photos. Max boost of 0.3 for 8+ photos."""
+        images = payload.get("images") or []
+        num_images = len(images) if isinstance(images, list) else 0
+        
+        if num_images == 0:
+            return 0.0
+        
+        # 1-3 photos: 0.05, 4-7 photos: 0.15, 8+ photos: 0.3
+        if num_images >= 8:
+            return 0.3
+        elif num_images >= 4:
+            return 0.15
+        else:
+            return 0.05
+
+    def _verified_boost(self, payload: dict[str, Any]) -> float:
+        """Boost verified/professional listings. Check if listing appears professional."""
+        # In real scenario, this would come from LBC metadata
+        # For now: presence of many images + complete details suggests verified/pro
+        images = payload.get("images") or []
+        num_images = len(images) if isinstance(images, list) else 0
+        price = payload.get("price")
+        square = payload.get("square")
+        
+        # More than 4 images + both price and square = likely pro/verified
+        if num_images >= 4 and price and square:
+            return 0.1
+        return 0.0
+
     def _apply_city_heuristic(self, candidates: list[dict[str, Any]], preferred_city: str | None) -> list[dict[str, Any]]:
         rescored: list[dict[str, Any]] = []
         for item in candidates:
             payload = item.get("payload") or {}
             boosted = dict(item)
-            base = float(item.get("score", 0.0))
-            boosted["score"] = base + self._city_boost(payload, preferred_city)
+            
+            base_score = float(item.get("score", 0.0))
+            city_boost = self._city_boost(payload, preferred_city)
+            date_boost = self._date_boost(payload)
+            image_boost = self._image_boost(payload)
+            verified_boost = self._verified_boost(payload)
+            
+            total_boost = city_boost + date_boost + image_boost + verified_boost
+            final_score = base_score + total_boost
+            
+            # Store score breakdown in payload
+            if "payload" not in boosted:
+                boosted["payload"] = {}
+            boosted["payload"]["score_breakdown"] = {
+                "vector_score": round(base_score, 3),
+                "city_boost": round(city_boost, 3),
+                "date_boost": round(date_boost, 3),
+                "image_boost": round(image_boost, 3),
+                "verified_boost": round(verified_boost, 3),
+                "total_score": round(final_score, 3),
+            }
+            
+            boosted["score"] = final_score
             rescored.append(boosted)
         return sorted(rescored, key=lambda item: item.get("score", 0.0), reverse=True)
 
@@ -76,7 +147,7 @@ class RerankService:
             return False
 
     async def rerank(self, query: str, candidates: list[dict[str, Any]], preferred_city: str | None = None) -> list[dict[str, Any]]:
-        """Rerank candidates using Qwen3-Reranker-4B model."""
+        """Rerank candidates using Qwen3-Reranker-4B model with additional boosts."""
         if not candidates:
             return []
 
@@ -116,15 +187,37 @@ class RerankService:
                         # For multi-class output, use the highest score
                         rerank_score = float(scores.max().item())
                     
+                    # Calculate all boosts
+                    vector_score = float(item.get("score", 0.0))
+                    city_boost = self._city_boost(payload, preferred_city)
+                    date_boost = self._date_boost(payload)
+                    image_boost = self._image_boost(payload)
+                    verified_boost = self._verified_boost(payload)
+                    
+                    # Final score combines vector + rerank + all boosts
+                    total_boosts = city_boost + date_boost + image_boost + verified_boost
+                    final_score = vector_score + rerank_score + total_boosts
+                    
+                    # Store score breakdown in payload
                     rescored_item = dict(item)
-                    # Combine the original vector score with the rerank score
-                    original_score = float(item.get("score", 0.0))
-                    rescored_item["score"] = original_score + rerank_score + self._city_boost(payload, preferred_city)
+                    if "payload" not in rescored_item:
+                        rescored_item["payload"] = {}
+                    rescored_item["payload"]["score_breakdown"] = {
+                        "vector_score": round(vector_score, 3),
+                        "rerank_score": round(rerank_score, 3),
+                        "city_boost": round(city_boost, 3),
+                        "date_boost": round(date_boost, 3),
+                        "image_boost": round(image_boost, 3),
+                        "verified_boost": round(verified_boost, 3),
+                        "total_score": round(final_score, 3),
+                    }
+                    
+                    rescored_item["score"] = final_score
                     rescored.append(rescored_item)
             
             return sorted(rescored, key=lambda item: item.get("score", 0.0), reverse=True)
         
         except Exception as e:
             print(f"Reranking error: {e}")
-            # If reranking fails, just return sorted by original score
+            # If reranking fails, fall back to heuristic with all boosts
             return self._apply_city_heuristic(candidates, preferred_city)

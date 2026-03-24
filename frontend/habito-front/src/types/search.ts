@@ -13,6 +13,15 @@ export type SearchPayload = {
   lat?: number | null;
   lng?: number | null;
   first_publication_date?: number | null;
+  score_breakdown?: {
+    vector_score: number;
+    rerank_score?: number;
+    city_boost: number;
+    date_boost: number;
+    image_boost: number;
+    verified_boost: number;
+    total_score: number;
+  } | null;
 };
 
 export type SearchResult = {
