@@ -17,9 +17,8 @@ uvicorn src.main:app --host 127.0.0.1 --port 8000 --reload
 - `QDRANT_URL` (défaut: `http://localhost:6333`)
 - `QDRANT_COLLECTION` (défaut: `habito_ads`)
 - `SEARCH_LIMIT` (défaut: `10`)
-- `OLLAMA_URL` (défaut: `http://localhost:11434`)
-- `OLLAMA_EMBED_MODEL` (défaut: `nomic-embed-text`)
-- `EMBEDDING_DIM` (défaut: `384`)
+- `EMBEDDING_MODEL` (défaut: `Qwen/Qwen3-Embedding-8B`)
+- `RERANKING_MODEL` (défaut: `Qwen/Qwen3-Reranker-4B`)
 
 ## Endpoints
 
@@ -45,5 +44,3 @@ Arrêt:
 ```bash
 docker compose down
 ```
-
-Note: si Ollama n'est pas accessible, `POST /api/search` retourne une liste vide au lieu d'une erreur.

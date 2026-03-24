@@ -1,2 +1,4 @@
 lbc==1.1.2
 qdrant-client==1.14.2
+transformers>=4.46.0
+numpy==1.26.4

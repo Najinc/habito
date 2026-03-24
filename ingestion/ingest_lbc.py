@@ -12,8 +12,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct
 
 COLLECTION_NAME = "habito_ads"
-VECTOR_SIZE = int(os.getenv("EMBEDDING_DIM", "384"))
-EMBEDDING_MODE = os.getenv("EMBEDDING_MODE", "hash")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "Qwen/Qwen3-Embedding-8B")
 
 qdrant = QdrantClient(
     host=os.getenv("QDRANT_HOST", "localhost"),
@@ -37,6 +36,43 @@ DEFAULT_LOCATIONS = os.getenv(
     "Paris:48.8566:2.3522;Lille:50.6292:3.0573;Reims:49.2583:4.0317",
 )
 
+DEFAULT_EMBED_DIM = int(os.getenv("EMBEDDING_DIM", "384"))
+torch_lib = None
+tokenizer = None
+embedding_model = None
+device = "cpu"
+_model_load_attempted = False
+
+
+def ensure_embedding_model() -> bool:
+    global torch_lib, tokenizer, embedding_model, device, _model_load_attempted
+    if tokenizer is not None and embedding_model is not None and torch_lib is not None:
+        return True
+    if _model_load_attempted:
+        return False
+
+    _model_load_attempted = True
+    try:
+        import torch
+        from transformers import AutoModel, AutoTokenizer
+
+        torch_lib = torch
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        tokenizer = AutoTokenizer.from_pretrained(EMBEDDING_MODEL, trust_remote_code=True)
+        embedding_model = AutoModel.from_pretrained(
+            EMBEDDING_MODEL,
+            trust_remote_code=True,
+            torch_dtype=torch.float32 if device == "cpu" else torch.float16,
+        ).to(device)
+        embedding_model.eval()
+        return True
+    except Exception as exc:
+        print(f"Embedding model load failed ({EMBEDDING_MODEL}): {exc}")
+        torch_lib = None
+        tokenizer = None
+        embedding_model = None
+        return False
+
 
 def normalize_text(text: str) -> str:
     lowered = unicodedata.normalize("NFKD", text.lower())
@@ -44,28 +80,24 @@ def normalize_text(text: str) -> str:
     return re.sub(r"\s+", " ", ascii_text).strip()
 
 
-def hash_embed(text: str) -> List[float]:
-    vector = [0.0] * VECTOR_SIZE
-    normalized = normalize_text(text)
-    if not normalized:
-        return vector
+def qwen_embed(text: str) -> List[float]:
+    """Generate embedding using Qwen3-Embedding-8B model."""
+    if not text.strip():
+        return [0.0] * DEFAULT_EMBED_DIM
 
-    tokens = re.findall(r"[a-z0-9]+", normalized)
-    if not tokens:
-        tokens = [normalized]
-
-    for token in tokens:
-        digest = hashlib.sha256(token.encode("utf-8")).digest()
-        index = int.from_bytes(digest[:4], "big") % VECTOR_SIZE
-        sign = -1.0 if digest[4] % 2 else 1.0
-        weight = 1.0 + (digest[5] / 255.0)
-        vector[index] += sign * weight
-
-    norm = math.sqrt(sum(value * value for value in vector))
-    if norm == 0:
-        return vector
-
-    return [value / norm for value in vector]
+    if not ensure_embedding_model():
+        return [0.0] * DEFAULT_EMBED_DIM
+    
+    try:
+        with torch_lib.no_grad():
+            inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True).to(device)
+            outputs = embedding_model(**inputs)
+            embeddings = outputs.last_hidden_state.mean(dim=1)
+            embedding = embeddings[0].cpu().numpy().tolist()
+        return embedding
+    except Exception as e:
+        print(f"Error generating embedding: {e}")
+        return [0.0] * DEFAULT_EMBED_DIM
 
 
 def configured_locations() -> list[tuple[str, lbc.City]]:
@@ -225,21 +257,14 @@ def ensure_collection():
         qdrant.create_collection(
             collection_name=COLLECTION_NAME,
             vectors_config=VectorParams(
-                size=VECTOR_SIZE,
+                size=DEFAULT_EMBED_DIM,
                 distance=Distance.COSINE,
             ),
         )
 
 
 def build_vectors(docs: List[str]) -> List[List[float]]:
-    if EMBEDDING_MODE == "sentence":
-        from sentence_transformers import SentenceTransformer
-
-        embedder = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
-        vectors = embedder.encode(docs, normalize_embeddings=True)
-        return [vector.tolist() for vector in vectors]
-
-    return [hash_embed(doc) for doc in docs]
+    return [qwen_embed(doc) for doc in docs]
 
 
 def make_doc(ad) -> str:
