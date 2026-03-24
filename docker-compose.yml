@@ -23,7 +23,7 @@ services:
       QDRANT_PORT: 6333
       QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
       QDRANT_COLLECTION: ${QDRANT_COLLECTION:-habito_ads}
-      SEARCH_LIMIT: ${SEARCH_LIMIT:-10}
+      SEARCH_LIMIT: ${SEARCH_LIMIT:-100}
       EMBEDDING_DIM: ${EMBEDDING_DIM:-384}
       ALLOW_HF_ON_CPU: ${ALLOW_HF_ON_CPU:-false}
       WATCHFILES_FORCE_POLLING: "true"
@@ -31,6 +31,9 @@ services:
       RERANKING_MODEL: ${RERANKING_MODEL:-Qwen/Qwen3-Reranker-4B}
       GROQ_API_KEY: ${GROQ_API_KEY:-}
       GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
+      LBC_LIMIT: ${LBC_LIMIT:-100}
+      LBC_PRICE_MIN: ${LBC_PRICE_MIN:-500}
+      LBC_PRICE_MAX: ${LBC_PRICE_MAX:-1500}
 
   frontend:
     image: node:20-alpine
@@ -64,7 +67,7 @@ services:
       LBC_LNG: ${LBC_LNG:-2.3522}
       LBC_RADIUS: ${LBC_RADIUS:-10000}
       LBC_PAGE: ${LBC_PAGE:-1}
-      LBC_LIMIT: ${LBC_LIMIT:-35}
+      LBC_LIMIT: ${LBC_LIMIT:-100}
       LBC_PRICE_MIN: ${LBC_PRICE_MIN:-500}
       LBC_PRICE_MAX: ${LBC_PRICE_MAX:-1500}
       LBC_PROGRESSIVE: ${LBC_PROGRESSIVE:-false}

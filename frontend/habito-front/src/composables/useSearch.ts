@@ -56,6 +56,8 @@ export function useSearch() {
 
   const allResults = ref<SearchResult[]>([]);
   const results = ref<SearchResult[]>([]);
+  const displayedResultsCount = ref(10); // Nombre de résultats affichés
+  const resultsPerPage = 10; // Nombre à ajouter au scroll
 
   const filters = ref({
     minPrice: "",
@@ -73,6 +75,21 @@ export function useSearch() {
   const isChatLoading = ref(false);
 
   const hasResults = computed(() => results.value.length > 0);
+
+  const paginatedResults = computed(() => {
+    return results.value.slice(0, displayedResultsCount.value);
+  });
+
+  const hasMoreResults = computed(() => {
+    return displayedResultsCount.value < results.value.length;
+  });
+
+  const loadMoreResults = () => {
+    displayedResultsCount.value = Math.min(
+      displayedResultsCount.value + resultsPerPage,
+      results.value.length
+    );
+  };
 
   const formatPrice = (value?: number | null): string => {
     if (typeof value !== "number") return "Prix non renseigne";
@@ -118,6 +135,7 @@ export function useSearch() {
 
       return true;
     });
+    displayedResultsCount.value = resultsPerPage; // Reset pagination
   };
 
   const search = async () => {
@@ -161,6 +179,7 @@ export function useSearch() {
     } catch (error) {
       allResults.value = [];
       results.value = [];
+      displayedResultsCount.value = resultsPerPage;
       errorMessage.value = error instanceof Error ? error.message : "Erreur inconnue.";
       successMessage.value = "";
     } finally {
@@ -230,6 +249,9 @@ export function useSearch() {
     successMessage,
     allResults,
     results,
+    paginatedResults,
+    displayedResultsCount,
+    hasMoreResults,
     filters,
     chatQuestion,
     chatAnswer,
@@ -243,5 +265,6 @@ export function useSearch() {
     applyFilters,
     search,
     askAdvisor,
+    loadMoreResults,
   };
 }

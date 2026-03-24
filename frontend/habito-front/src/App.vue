@@ -16,6 +16,8 @@ const {
   errorMessage,
   allResults,
   results,
+  paginatedResults,
+  hasMoreResults,
   filters,
   chatQuestion,
   chatAnswer,
@@ -29,6 +31,7 @@ const {
   applyFilters,
   search,
   askAdvisor,
+  loadMoreResults,
 } = useSearch();
 
 const getCityCoordinates = (city: string) => {
@@ -226,13 +229,15 @@ const handleRadiusUpdate = (radius: number) => {
 
           <div>
             <ResultsList
-              :results="results"
+              :results="paginatedResults"
               :all-results-count="allResults.length"
               :has-results="hasResults"
               :is-loading="isLoading"
+              :has-more-results="hasMoreResults"
               :format-price="formatPrice"
               :short-text="shortText"
               :score-style="scoreStyle"
+              @load-more="loadMoreResults"
             />
           </div>
         </div>
