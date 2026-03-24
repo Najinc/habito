@@ -12,7 +12,7 @@ import Groq from "groq-sdk";
 
 const groq = new Groq({
   apiKey: import.meta.env.VITE_GROQ_API_KEY,
-  baseUrl: "https://api.groq.dev",
+  baseURL: "https://api.groq.dev",
 });
 
 const {
