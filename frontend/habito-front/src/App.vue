@@ -1,4 +1,5 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
+import { ref } from "vue";
 import AdvisorPanel from "./components/AdvisorPanel.vue";
 import ResultsList from "./components/ResultsList.vue";
 import MapView from "./components/MapView.vue";
@@ -7,6 +8,12 @@ import {
   cityCoordinates,
   useSearch,
 } from "./composables/useSearch";
+import Groq from "groq-sdk";
+
+const groq = new Groq({
+  apiKey: import.meta.env.VITE_GROQ_API_KEY,
+  baseUrl: "https://api.groq.dev",
+});
 
 const {
   query,
@@ -46,6 +53,44 @@ const getCityCoordinates = (city: string) => {
 const handleRadiusUpdate = (radius: number) => {
   filterRadius.value = radius.toString();
 };
+
+const isRecording = ref(false);
+const recorder = ref<MediaRecorder | null>(null);
+async function saveVoice() {
+  let chunks: BlobPart[] = [];
+  if (!recorder.value) {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    recorder.value = new MediaRecorder(stream);
+  }
+
+  if (isRecording.value) {
+    recorder.value.stop();
+    isRecording.value = false;
+    return;
+  }
+
+  isRecording.value = true;
+  recorder.value.ondataavailable = (event) => {
+    chunks.push(event.data);
+  };
+
+  recorder.value.onstop = async () => {
+    const audioBlob = new Blob(chunks, { type: "audio/webm" });
+    const audioFile = new File([audioBlob], "recording.webm", {
+      type: audioBlob.type,
+    });
+
+    console.log(audioBlob);
+    const transcription = await groq.audio.transcriptions.create({
+      file: audioFile,
+      model: "whisper-large-v3-turbo",
+      language: "fr",
+    });
+
+    console.log(transcription);
+  };
+  recorder.value.start();
+}
 </script>
 
 <template>
@@ -104,6 +149,17 @@ const handleRadiusUpdate = (radius: number) => {
                 }}
               </button>
             </div>
+            <button
+              type="button"
+              @click="saveVoice"
+              :class="
+                isRecording
+                  ? 'h-12 rounded-xl bg-red-600 px-6 font-semibold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60'
+                  : 'h-12 rounded-xl bg-green-600 px-6 font-semibold text-white transition hover:bg-green-500 disabled:cursor-not-allowed disabled:opacity-60'
+              "
+            >
+              <Mic />
+            </button>
           </form>
 
           <p
