@@ -198,6 +198,15 @@ class IngestService:
             lat = getattr(ad.location, "lat", None)
             lng = getattr(ad.location, "lng", None)
 
+        # Extract additional enriched metadata
+        is_pro = getattr(ad, "is_pro", False)
+        seniority = getattr(ad, "seniority", None)
+        owner_type = "Agence" if is_pro else "Particulier"
+        
+        # Try to get view count if available
+        has_phone = getattr(ad, "has_phone", False)
+        nb_views = getattr(ad, "nb_views", 0)
+
         return {
             "ad_id": getattr(ad, "list_id", None),
             "subject": subject,
@@ -212,6 +221,11 @@ class IngestService:
             "lat": lat,
             "lng": lng,
             "first_publication_date": getattr(ad, "first_publication_date", None),
+            "is_pro": is_pro,
+            "owner_type": owner_type,
+            "seniority": seniority,
+            "nb_views": nb_views,
+            "has_phone": has_phone,
             "doc": doc,
             "source": "lbc",
         }

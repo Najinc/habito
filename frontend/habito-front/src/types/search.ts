@@ -13,6 +13,11 @@ export type SearchPayload = {
   lat?: number | null;
   lng?: number | null;
   first_publication_date?: number | null;
+  is_pro?: boolean | null;
+  owner_type?: string | null;
+  seniority?: string | null;
+  nb_views?: number | null;
+  has_phone?: boolean | null;
   score_breakdown?: {
     vector_score: number;
     rerank_score?: number;

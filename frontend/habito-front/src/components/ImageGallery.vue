@@ -4,11 +4,13 @@ import { ref, computed } from "vue";
 interface Props {
   images?: string[] | null;
   title?: string;
+  inDetailView?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   images: null,
   title: "Images",
+  inDetailView: false,
 });
 
 const currentIndex = ref(0);
@@ -73,7 +75,8 @@ const handleKeydown = (e: KeyboardEvent) => {
       <img
         :src="currentImage"
         :alt="title"
-        class="h-40 w-full cursor-pointer object-cover transition hover:opacity-95"
+        :class="inDetailView ? 'h-80' : 'h-40'"
+        class="w-full cursor-pointer object-cover transition hover:opacity-95"
         @click="toggleFullscreen"
       />
 

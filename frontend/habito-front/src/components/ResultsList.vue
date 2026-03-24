@@ -2,6 +2,7 @@
 import { ref, onMounted, watch } from "vue";
 import ImageGallery from "./ImageGallery.vue";
 import ScoreBreakdown from "./ScoreBreakdown.vue";
+import DetailModal from "./DetailModal.vue";
 import type { SearchResult } from "../types/search";
 
 interface Props {
@@ -22,6 +23,18 @@ const emit = defineEmits<{
 
 const observerTarget = ref<HTMLDivElement | null>(null);
 const isLoadingMore = ref(false);
+const selectedResult = ref<SearchResult | null>(null);
+const isDetailModalOpen = ref(false);
+
+const openDetailModal = (result: SearchResult) => {
+  selectedResult.value = result;
+  isDetailModalOpen.value = true;
+};
+
+const closeDetailModal = () => {
+  isDetailModalOpen.value = false;
+  selectedResult.value = null;
+};
 
 onMounted(() => {
   const observer = new IntersectionObserver(
@@ -131,15 +144,23 @@ onMounted(() => {
               </div>
             </div>
 
-            <a
-              v-if="item.payload.url"
-              :href="item.payload.url"
-              target="_blank"
-              rel="noreferrer"
-              class="mt-4 inline-flex text-sm font-semibold text-indigo-600 hover:text-indigo-500"
-            >
-              Voir l'annonce ->
-            </a>
+            <div class="mt-4 flex flex-wrap gap-2">
+              <button
+                @click="openDetailModal(item)"
+                class="inline-flex text-sm font-semibold text-indigo-600 transition hover:text-indigo-500"
+              >
+                📄 Voir les détails
+              </button>
+              <a
+                v-if="item.payload.url"
+                :href="item.payload.url"
+                target="_blank"
+                rel="noreferrer"
+                class="inline-flex text-sm font-semibold text-slate-600 transition hover:text-slate-500"
+              >
+                Voir sur LBC →
+              </a>
+            </div>
           </div>
         </div>
       </li>
@@ -161,5 +182,13 @@ onMounted(() => {
         >
       </li>
     </ul>
+
+    <!-- Detail Modal -->
+    <DetailModal
+      :is-open="isDetailModalOpen"
+      :result="selectedResult"
+      :format-price="formatPrice"
+      @close="closeDetailModal"
+    />
   </section>
 </template>
