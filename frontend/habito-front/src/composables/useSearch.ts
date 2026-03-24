@@ -103,7 +103,7 @@ export function useSearch() {
 
   const shortText = (text?: string | null): string => {
     if (!text) return "Description non disponible.";
-    return text.length > 240 ? `${text.slice(0, 240)}...` : text;
+    return text.length > (240 * 3) ? `${text.slice(0, 240)}...` : text;
   };
 
   const scoreStyle = (score: number): Record<string, string> => {

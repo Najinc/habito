@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from "vue";
+import ImageGallery from "./ImageGallery.vue";
 import type { SearchResult } from "../types/search";
 
 interface Props {
@@ -83,20 +84,11 @@ onMounted(() => {
         class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
       >
         <div class="flex flex-col gap-4 p-5 md:flex-row">
-          <div class="h-40 w-full flex-shrink-0 md:w-40">
-            <img
-              v-if="item.payload.image_url"
-              :src="item.payload.image_url"
-              :alt="item.payload.subject || 'Photo annonce'"
-              class="h-full w-full rounded-lg object-cover"
-              onerror="this.style.display = 'none'"
+          <div class="flex-shrink-0 md:w-64">
+            <ImageGallery
+              :images="item.payload.images"
+              :title="item.payload.subject || 'Photos annonce'"
             />
-            <div
-              v-else
-              class="flex h-full w-full items-center justify-center rounded-lg bg-slate-200 text-sm text-slate-400"
-            >
-              Pas d'image
-            </div>
           </div>
 
           <div class="flex flex-1 flex-col">

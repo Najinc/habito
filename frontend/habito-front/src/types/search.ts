@@ -8,6 +8,7 @@ export type SearchPayload = {
   rooms?: number | null;
   url?: string | null;
   image_url?: string | null;
+  images?: string[] | null;
   source?: string | null;
   lat?: number | null;
   lng?: number | null;

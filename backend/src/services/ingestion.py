@@ -183,11 +183,13 @@ class IngestService:
         square_value = self._extract_square(ad, subject, body)
         rooms_value = self._extract_rooms(ad, subject, body)
 
-        # Extract first image URL
+        # Extract all images
         image_url = None
+        all_images = []
         images = getattr(ad, "images", None) or []
         if images and len(images) > 0:
-            image_url = images[0]
+            all_images = images
+            image_url = images[0]  # Keep first image for backward compatibility
 
         # Extract coordinates from location object
         lat = None
@@ -206,6 +208,7 @@ class IngestService:
             "rooms": rooms_value,
             "url": getattr(ad, "url", None),
             "image_url": image_url,
+            "images": all_images,
             "lat": lat,
             "lng": lng,
             "first_publication_date": getattr(ad, "first_publication_date", None),
