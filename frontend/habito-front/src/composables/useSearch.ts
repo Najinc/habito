@@ -49,6 +49,7 @@ export function useSearch() {
   const query = ref("appartement");
   const searchCity = ref("Lille");
   const filterRadius = ref("10");
+  const sortBy = ref<"score" | "price-asc" | "price-desc" | "square-asc" | "square-desc" | "newest">("score");
 
   const isLoading = ref(false);
   const errorMessage = ref("");
@@ -119,6 +120,33 @@ export function useSearch() {
     };
   };
 
+  const sortResults = () => {
+    const sorted = [...results.value];
+
+    switch (sortBy.value) {
+      case "price-asc":
+        sorted.sort((a, b) => (a.payload.price || 0) - (b.payload.price || 0));
+        break;
+      case "price-desc":
+        sorted.sort((a, b) => (b.payload.price || 0) - (a.payload.price || 0));
+        break;
+      case "square-asc":
+        sorted.sort((a, b) => (a.payload.square || 0) - (b.payload.square || 0));
+        break;
+      case "square-desc":
+        sorted.sort((a, b) => (b.payload.square || 0) - (a.payload.square || 0));
+        break;
+      case "newest":
+        sorted.sort((a, b) => (b.payload.first_publication_date || 0) - (a.payload.first_publication_date || 0));
+        break;
+      case "score":
+      default:
+        sorted.sort((a, b) => b.score - a.score);
+    }
+
+    results.value = sorted;
+  };
+
   const applyFilters = () => {
     results.value = allResults.value.filter((item) => {
       const price = item.payload.price;
@@ -135,6 +163,7 @@ export function useSearch() {
 
       return true;
     });
+    sortResults(); // Apply sorting after filtering
     displayedResultsCount.value = resultsPerPage; // Reset pagination
   };
 
@@ -244,6 +273,7 @@ export function useSearch() {
     query,
     searchCity,
     filterRadius,
+    sortBy,
     isLoading,
     errorMessage,
     successMessage,
@@ -263,6 +293,7 @@ export function useSearch() {
     shortText,
     scoreStyle,
     applyFilters,
+    sortResults,
     search,
     askAdvisor,
     loadMoreResults,

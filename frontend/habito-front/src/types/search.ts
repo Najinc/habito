@@ -11,6 +11,7 @@ export type SearchPayload = {
   source?: string | null;
   lat?: number | null;
   lng?: number | null;
+  first_publication_date?: number | null;
 };
 
 export type SearchResult = {

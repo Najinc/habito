@@ -12,6 +12,7 @@ const {
   query,
   searchCity,
   filterRadius,
+  sortBy,
   isLoading,
   errorMessage,
   allResults,
@@ -29,6 +30,7 @@ const {
   shortText,
   scoreStyle,
   applyFilters,
+  sortResults,
   search,
   askAdvisor,
   loadMoreResults,
@@ -225,6 +227,32 @@ const handleRadiusUpdate = (radius: number) => {
               @update:question="chatQuestion = $event"
               @ask="askAdvisor"
             />
+          </div>
+
+          <!-- Sorting Section -->
+          <div
+            class="flex items-center justify-between rounded-3xl bg-white/85 p-6 shadow-soft backdrop-blur md:p-10"
+            v-if="hasResults"
+          >
+            <div class="flex items-center gap-4">
+              <label for="sort-by" class="text-sm font-semibold text-slate-700"
+                >Trier par:</label
+              >
+              <select
+                id="sort-by"
+                v-model="sortBy"
+                @change="sortResults"
+                class="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-slate-900 shadow-sm outline-none ring-indigo-300 transition focus:border-indigo-400 focus:ring-4"
+              >
+                <option value="score">Score (meilleur match)</option>
+                <option value="price-asc">Prix (croissant)</option>
+                <option value="price-desc">Prix (décroissant)</option>
+                <option value="square-asc">Surface (croissante)</option>
+                <option value="square-desc">Surface (décroissante)</option>
+                <option value="newest">Plus récent</option>
+              </select>
+            </div>
+            <p class="text-sm text-slate-600">{{ results.length }} résultats</p>
           </div>
 
           <div>

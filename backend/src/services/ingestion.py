@@ -208,6 +208,7 @@ class IngestService:
             "image_url": image_url,
             "lat": lat,
             "lng": lng,
+            "first_publication_date": getattr(ad, "first_publication_date", None),
             "doc": doc,
             "source": "lbc",
         }
