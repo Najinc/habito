@@ -16,6 +16,7 @@ python ingest_lbc.py
 
 - `QDRANT_HOST` (défaut: `localhost`)
 - `QDRANT_PORT` (défaut: `6333`)
+- `EMBEDDING_MODEL` (défaut: `Qwen/Qwen3-Embedding-8B`)
 - `LBC_TEXT` (défaut: `appartement`)
 - `LBC_CITY` (défaut: `Paris`)
 - `LBC_LAT` (défaut: `48.8566`)
@@ -26,8 +27,6 @@ python ingest_lbc.py
 - `LBC_LIMIT` (défaut: `35`)
 - `LBC_PRICE_MIN` (défaut: `500`)
 - `LBC_PRICE_MAX` (défaut: `1500`)
-- `EMBEDDING_MODE` (défaut: `hash`, valeurs: `hash` ou `sentence`)
-- `EMBEDDING_DIM` (défaut: `384`)
 - `LBC_PROGRESSIVE` (défaut: `false`)
 - `LBC_MAX_PAGES` (défaut: `1`, nombre de pages par ville et par exécution)
 - `LBC_STATE_FILE` (défaut: `./.ingest_state.json`)
@@ -38,11 +37,7 @@ Exemple:
 LBC_CITY=Lille LBC_LAT=50.6292 LBC_LNG=3.0573 LBC_PRICE_MIN=600 LBC_PRICE_MAX=1800 python ingest_lbc.py
 ```
 
-Pour activer de vrais embeddings (plus lourd, installe `sentence-transformers` + `torch`):
-
-```bash
-EMBEDDING_MODE=sentence python ingest_lbc.py
-```
+**Note:** L'ingestion utilise maintenant le modèle **Qwen3-Embedding-8B** de Hugging Face pour générer les embeddings (dimension 4096). Assurez-vous d'avoir au minimum 4GB de RAM disponible.
 
 Scraping progressif (pagination incrémentale avec reprise):
 

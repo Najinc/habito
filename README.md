@@ -13,7 +13,8 @@ Stack principale :
 - Frontend : Vue 3, TypeScript, Vite, Tailwind CSS
 - Backend : FastAPI (Python)
 - Base vectorielle : Qdrant
-- Embeddings : Ollama (`nomic-embed-text`) avec fallback hash local
+- Embeddings : Qwen3-Embedding-8B (Hugging Face) avec dimension 4096
+- Reranking : Qwen3-Reranker-4B (Hugging Face)
 - Ingestion : script Python pour collecter et indexer des annonces
 
 Flux de recherche :
@@ -69,15 +70,30 @@ Fichier frontend concerné :
 
 Service : `backend/src/services/ollama.py`
 
+Modèle utilisé : **Qwen3-Embedding-8B** de Hugging Face
+
 Comportement :
-1. Appel principal Ollama : `POST /api/embed`
-2. Fallback compatibilité : `POST /api/embeddings`
-3. Fallback final local : embedding hash déterministe si Ollama est indisponible
+1. Charge le modèle depuis Hugging Face au démarrage
+2. Génère des embeddings de dimension 4096
+3. Utilise GPU si disponible, sinon CPU
 
 Paramètres importants :
-- `OLLAMA_URL` (par défaut `http://localhost:11434`)
-- `OLLAMA_EMBED_MODEL` (par défaut `nomic-embed-text`)
-- `EMBEDDING_DIM` (par défaut `384`)
+- `EMBEDDING_MODEL` (par défaut `Qwen/Qwen3-Embedding-8B`)
+
+## Reranking : ce qui est utilisé
+
+Service : `backend/src/services/rerank.py`
+
+Modèle utilisé : **Qwen3-Reranker-4B** de Hugging Face
+
+Comportement :
+1. Prend en charge la requête et chaque document candidat
+2. Calcule un score de pertinence avec le modèle cross-encoder
+3. Combine ce score avec le score vectoriel original
+4. Retourne les résultats réordonnés
+
+Paramètres importants :
+- `RERANKING_MODEL` (par défaut `Qwen/Qwen3-Reranker-4B`)
 
 ## Recherche vectorielle : Qdrant
 
@@ -111,7 +127,10 @@ curl -X POST http://localhost:8000/api/search \
 Prerequis :
 - Docker
 - Docker Compose
-- Ollama en local avec le modele `nomic-embed-text`
+
+**Note:** 
+- Le modèle Qwen3-Embedding-8B sera téléchargé automatiquement depuis Hugging Face au premier démarrage (environ 8GB)
+- Assurez-vous d'avoir au minimum 8GB de RAM disponible et une bonne connexion internet
 
 Etapes :
 
@@ -186,5 +205,5 @@ habito/
 ## Notes importantes
 
 - Le chatbot frontend a ete retire.
-- La recherche reste basee sur embeddings + recherche vectorielle + reranking.
-- Si Ollama est indisponible, le backend continue a fonctionner grace au fallback hash.
+- La recherche est basee sur embeddings semantiques (Qwen3-Embedding-8B) + recherche vectorielle (Qdrant) + reranking intelligent (Qwen3-Reranker-4B).
+- Les modeles sont telecharges automatiquement depuis Hugging Face au premier demarrage.
