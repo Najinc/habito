@@ -10,6 +10,29 @@ class GroqService:
         self.model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
         self.base_url = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
 
+    async def transcribe(self, audio_content: bytes, filename: str, language: str = "fr") -> str:
+        """Transcribe audio using Groq Whisper API"""
+        if not self.api_key:
+            raise ValueError("GROQ_API_KEY is not configured")
+
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                files = {
+                    "file": (filename, audio_content, "audio/webm"),
+                    "model": (None, "whisper-large-v3-turbo"),
+                    "language": (None, language),
+                }
+                response = await client.post(
+                    f"{self.base_url}/audio/transcriptions",
+                    headers={"Authorization": f"Bearer {self.api_key}"},
+                    files=files,
+                )
+                response.raise_for_status()
+                data = response.json()
+                return data.get("text", "")
+        except Exception as e:
+            raise ValueError(f"Transcription failed: {str(e)}") from e
+
     def _fallback_advice(self, query: str, city: str, candidates: list[dict[str, Any]]) -> tuple[str, str | None]:
         if not candidates:
             return (

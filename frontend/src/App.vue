@@ -8,12 +8,7 @@ import {
   cityCoordinates,
   useSearch,
 } from "./composables/useSearch";
-import Groq from "groq-sdk";
-
-const groq = new Groq({
-  apiKey: import.meta.env.VITE_GROQ_API_KEY,
-  baseURL: "https://api.groq.dev",
-});
+import { Mic } from "@lucide/vue";
 
 const {
   query,
@@ -56,6 +51,8 @@ const handleRadiusUpdate = (radius: number) => {
 
 const isRecording = ref(false);
 const recorder = ref<MediaRecorder | null>(null);
+const transcriptionError = ref<string>("");
+
 async function saveVoice() {
   let chunks: BlobPart[] = [];
   if (!recorder.value) {
@@ -70,25 +67,40 @@ async function saveVoice() {
   }
 
   isRecording.value = true;
+  transcriptionError.value = "";
   recorder.value.ondataavailable = (event) => {
     chunks.push(event.data);
   };
 
   recorder.value.onstop = async () => {
-    const audioBlob = new Blob(chunks, { type: "audio/webm" });
-    const audioFile = new File([audioBlob], "recording.webm", {
-      type: audioBlob.type,
-    });
+    try {
+      const audioBlob = new Blob(chunks, { type: "audio/webm" });
+      const formData = new FormData();
+      formData.append("file", audioBlob, "recording.webm");
+      formData.append("language", "fr");
 
-    console.log(audioBlob);
-    const transcription = await groq.audio.transcriptions.create({
-      file: audioFile,
-      model: "whisper-large-v3-turbo",
-      language: "fr",
-    });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/chat/transcribe`,
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
 
-    console.log(transcription);
+      if (!response.ok) {
+        throw new Error("Erreur lors de la transcription");
+      }
+
+      const data = (await response.json()) as { text: string };
+      query.value = data.text;
+      console.log("Transcription:", data.text);
+    } catch (error) {
+      transcriptionError.value =
+        error instanceof Error ? error.message : "Erreur de transcription";
+      console.error("Transcription error:", error);
+    }
   };
+
   recorder.value.start();
 }
 </script>
@@ -167,6 +179,12 @@ async function saveVoice() {
             class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"
           >
             {{ errorMessage }}
+          </p>
+          <p
+            v-if="transcriptionError"
+            class="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-700"
+          >
+            Erreur de transcription: {{ transcriptionError }}
           </p>
 
           <section class="space-y-4 rounded-2xl bg-slate-50 p-4 md:p-5">
