@@ -19,6 +19,10 @@ uvicorn src.main:app --host 127.0.0.1 --port 8000 --reload
 - `SEARCH_LIMIT` (défaut: `10`)
 - `EMBEDDING_MODEL` (défaut: `Qwen/Qwen3-Embedding-8B`)
 - `RERANKING_MODEL` (défaut: `Qwen/Qwen3-Reranker-4B`)
+- `GEMINI_API_KEY` (clé API Gemini pour le chatbot conseil)
+- `GEMINI_MODEL` (défaut: `gemini-3.1-flash-lite-preview`)
+- `GEMINI_BASE_URL` (défaut: `https://generativelanguage.googleapis.com/v1beta`)
+- `GROQ_API_KEY` (utilisé pour la transcription audio)
 
 ## Endpoints
 

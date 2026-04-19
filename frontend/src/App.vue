@@ -80,7 +80,7 @@ async function saveVoice() {
       formData.append("language", "fr");
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/chat/transcribe`,
+        `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/api/chat/transcribe`,
         {
           method: "POST",
           body: formData,

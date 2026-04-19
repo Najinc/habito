@@ -1,6 +1,8 @@
 import { computed, ref } from "vue";
 import type { ChatAdviceResponse, SearchResult } from "../types/search";
 
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/$/, "");
+
 export const cityOptions = [
   "Amiens",
   "Angers",
@@ -195,7 +197,7 @@ export function useSearch() {
     successMessage.value = "";
 
     try {
-      const searchResponse = await fetch("http://localhost:8000/api/search", {
+      const searchResponse = await fetch(`${API_BASE_URL}/api/search`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: cleanQuery, city }),
@@ -253,7 +255,7 @@ export function useSearch() {
         },
       }));
 
-      const response = await fetch("http://localhost:8000/api/chat/advice", {
+      const response = await fetch(`${API_BASE_URL}/api/chat/advice`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
